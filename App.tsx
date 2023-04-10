@@ -1,15 +1,17 @@
+import { Fontisto } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function App() {
   const [working, setWorking] = useState<boolean>(true);
   const [text, setText] = useState<string>("");
   const [todo, setTodo] = useState<{}>({});
 
-  function changeText(value: string) {
-    setText(value);
+  function changeText(text: string) {
+    setText(text);
+    console.log;
   }
 
   async function addTodo() {
@@ -22,6 +24,13 @@ export default function App() {
     setText("");
   }
 
+  async function deleteTodo(id: string) {
+    const newTodo: any = { ...todo };
+    delete newTodo[id];
+    setTodo(newTodo);
+    await saveTodo(newTodo);
+  }
+
   async function saveTodo(toSave: {}) {
     await AsyncStorage.setItem("@todo", JSON.stringify(toSave));
   }
@@ -30,8 +39,6 @@ export default function App() {
     const s = await AsyncStorage.getItem("@todo");
     s !== null ? setTodo(JSON.parse(s)) : null;
   }
-
-  console.log(todo);
 
   useEffect(() => {
     loadTodo();
@@ -59,9 +66,13 @@ export default function App() {
         placeholder={working ? "Add todo" : "Add travel"}
         returnKeyType="done"
         value={text}
-        onChangeText={changeText}
+        onChangeText={text => {
+          setText(text);
+          console.log(text);
+        }}
         onSubmitEditing={addTodo}
       />
+      <UpdateScrollView todo={todo} working={working} deleteTodo={deleteTodo} />
     </View>
   );
 }
@@ -99,5 +110,42 @@ function TodoHeader({ working, setWorking }: TodoHeaderProp) {
         </Text>
       </TouchableOpacity>
     </View>
+  );
+}
+
+interface UpdateScrollViewProp {
+  todo: any;
+  working: boolean;
+  deleteTodo: (id: string) => void;
+}
+
+function UpdateScrollView({ todo, working, deleteTodo }: UpdateScrollViewProp) {
+  return (
+    <ScrollView>
+      {Object.keys(todo).map(key =>
+        todo[key].working === working ? (
+          <View
+            style={{
+              backgroundColor: "grey",
+              marginBottom: 10,
+              paddingVertical: 20,
+              paddingHorizontal: 20,
+              borderRadius: 15,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+            key={key}
+          >
+            <Text style={{ color: "white", fontSize: 16, fontWeight: "500" }}>
+              {todo[key].text}
+            </Text>
+            <TouchableOpacity onPress={() => deleteTodo(key)}>
+              <Fontisto name="trash" size={18} color="white" />
+            </TouchableOpacity>
+          </View>
+        ) : null,
+      )}
+    </ScrollView>
   );
 }
